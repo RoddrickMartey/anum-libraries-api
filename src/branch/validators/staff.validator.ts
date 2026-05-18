@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { Role } from '../../generated/prisma/index.js';
 
 export const createStaffSchema = z.object({
   firstName: z
@@ -20,9 +19,12 @@ export const createStaffSchema = z.object({
   password: z
     .string({ error: 'Password is required' })
     .min(8, 'Password must be at least 8 characters'),
-  role: z.enum(['BRANCH_ADMIN', 'SENIOR_LIBRARIAN', 'LIBRARIAN', 'DESK_STAFF'], {
-    error: 'Invalid role',
-  }),
+  role: z.enum(
+    ['BRANCH_ADMIN', 'SENIOR_LIBRARIAN', 'LIBRARIAN', 'DESK_STAFF'],
+    {
+      error: 'Invalid role',
+    },
+  ),
 });
 
 export const updateStaffSchema = z.object({

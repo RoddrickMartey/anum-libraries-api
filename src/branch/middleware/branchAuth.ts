@@ -5,7 +5,16 @@ import { verifyAccessToken } from '../../shared/utils/jwt.js';
 
 export const branchAuth = (req: Request, res: Response, next: NextFunction) => {
   try {
-    const token = req.cookies?.accessToken;
+    // Try to get token from Authorization header first (Bearer token)
+    const authHeader = req.headers.authorization;
+    const tokenFromHeader = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : null;
+
+    // Fall back to cookies if header token not found
+    const tokenFromCookie = req.cookies?.accessToken;
+
+    const token = tokenFromHeader || tokenFromCookie;
 
     if (!token) {
       return res.status(401).json({
@@ -24,8 +33,8 @@ export const branchAuth = (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
-    req.staff = {
-      id: payload.staffId,
+    (req as any).staff = {
+      staffId: payload.staffId,
       branchId: payload.branchId,
       role: payload.role,
     };
