@@ -1,0 +1,327 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  BRANCH_ADMIN
+  SENIOR_LIBRARIAN
+  LIBRARIAN
+  DESK_STAFF
+}
+
+enum CopyStatus {
+  AVAILABLE
+  BORROWED
+  RESERVED
+  DAMAGED
+  LOST
+  WITHDRAWN
+}
+
+enum MemberStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  EXPIRED
+}
+
+enum LoanStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+  LOST
+}
+
+enum ReservationStatus {
+  PENDING
+  READY
+  FULFILLED
+  CANCELLED
+  EXPIRED
+}
+
+enum FineType {
+  OVERDUE
+  DAMAGED
+  LOST
+  OTHER
+}
+
+enum FineStatus {
+  OUTSTANDING
+  PARTIALLY_PAID
+  PAID
+  WAIVED
+}
+
+enum BanType {
+  BRANCH
+  NETWORK
+}
+
+// ─── MODELS ──────────────────────────────────────────────────────────────────
+
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  town      String
+  address   String
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  loanRules Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  staff        Staff[]
+  books        Book[]
+  members      Member[]
+  loans        Loan[]
+  reservations Reservation[]
+  fines        Fine[]
+  bans         Ban[]
+  auditLogs    AuditLog[]
+
+  @@map("branches")
+}
+
+model Staff {
+  id           String    @id @default(uuid())
+  branchId     String?
+  firstName    String
+  lastName     String
+  email        String    @unique
+  passwordHash String
+  role         Role
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  createdBy    String?
+
+  // Relations
+  branch Branch? @relation(fields: [branchId], references: [id])
+
+  // Audit back-relations
+  auditLogs AuditLog[]
+
+  @@index([branchId])
+  @@index([email])
+  @@map("staff")
+}
+
+model Book {
+  id            String    @id @default(uuid())
+  branchId      String
+  isbn          String
+  title         String
+  authors       String[]
+  publisher     String?
+  publishedYear Int?
+  edition       String?
+  language      String    @default("en")
+  genre         String?
+  description   String?
+  shelfLocation String?
+  createdAt     DateTime  @default(now())
+  createdBy     String
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  branch       Branch        @relation(fields: [branchId], references: [id])
+  copies       Copy[]
+  reservations Reservation[]
+
+  @@index([branchId])
+  @@index([isbn])
+  @@index([title])
+  @@map("books")
+}
+
+model Copy {
+  id          String     @id @default(uuid())
+  bookId      String
+  branchId    String
+  barcode     String     @unique
+  status      CopyStatus @default(AVAILABLE)
+  condition   String?
+  acquiredAt  DateTime?
+  withdrawnAt DateTime?
+  createdAt   DateTime   @default(now())
+
+  // Relations
+  book  Book   @relation(fields: [bookId], references: [id])
+  loans Loan[]
+
+  @@index([bookId])
+  @@index([branchId])
+  @@index([barcode])
+  @@map("copies")
+}
+
+model Member {
+  id            String       @id @default(uuid())
+  branchId      String
+  cardNumber    String       @unique
+  firstName     String
+  lastName      String
+  dateOfBirth   DateTime?
+  phone         String?
+  email         String?
+  address       String?
+  cardIssuedAt  DateTime     @default(now())
+  cardExpiresAt DateTime
+  status        MemberStatus @default(ACTIVE)
+  notes         String?
+  createdAt     DateTime     @default(now())
+  createdBy     String
+
+  // Relations
+  branch       Branch        @relation(fields: [branchId], references: [id])
+  loans        Loan[]
+  reservations Reservation[]
+  fines        Fine[]
+  bans         Ban[]
+
+  @@index([branchId])
+  @@index([cardNumber])
+  @@index([lastName, firstName])
+  @@map("members")
+}
+
+model Loan {
+  id           String     @id @default(uuid())
+  branchId     String
+  copyId       String
+  memberId     String
+  checkedOutAt DateTime   @default(now())
+  dueAt        DateTime
+  returnedAt   DateTime?
+  checkedOutBy String
+  checkedInBy  String?
+  renewalCount Int        @default(0)
+  status       LoanStatus @default(ACTIVE)
+
+  // Relations
+  branch Branch @relation(fields: [branchId], references: [id])
+  copy   Copy   @relation(fields: [copyId], references: [id])
+  member Member @relation(fields: [memberId], references: [id])
+  fines  Fine[]
+
+  @@index([branchId])
+  @@index([copyId])
+  @@index([memberId])
+  @@index([status])
+  @@map("loans")
+}
+
+model Reservation {
+  id            String            @id @default(uuid())
+  branchId      String
+  bookId        String
+  memberId      String
+  queuePosition Int
+  reservedAt    DateTime          @default(now())
+  notifiedAt    DateTime?
+  expiresAt     DateTime?
+  status        ReservationStatus @default(PENDING)
+  createdBy     String
+
+  // Relations
+  branch Branch @relation(fields: [branchId], references: [id])
+  book   Book   @relation(fields: [bookId], references: [id])
+  member Member @relation(fields: [memberId], references: [id])
+
+  @@index([branchId])
+  @@index([bookId])
+  @@index([memberId])
+  @@index([status])
+  @@map("reservations")
+}
+
+model Fine {
+  id          String     @id @default(uuid())
+  branchId    String
+  memberId    String
+  loanId      String?
+  type        FineType
+  amount      Decimal    @db.Decimal(10, 2)
+  amountPaid  Decimal    @default(0) @db.Decimal(10, 2)
+  status      FineStatus @default(OUTSTANDING)
+  reason      String?
+  issuedAt    DateTime   @default(now())
+  settledAt   DateTime?
+  actionBy    String
+
+  // Relations
+  branch Branch @relation(fields: [branchId], references: [id])
+  member Member @relation(fields: [memberId], references: [id])
+  loan   Loan?  @relation(fields: [loanId], references: [id])
+
+  @@index([branchId])
+  @@index([memberId])
+  @@index([status])
+  @@map("fines")
+}
+
+model Ban {
+  id             String    @id @default(uuid())
+  memberId       String
+  branchId       String?
+  type           BanType
+  reason         String
+  legalReference String?
+  issuedAt       DateTime  @default(now())
+  issuedBy       String
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  revokedBy      String?
+  revokeReason   String?
+
+  // Relations
+  member Member  @relation(fields: [memberId], references: [id])
+  branch Branch? @relation(fields: [branchId], references: [id])
+
+  @@index([memberId])
+  @@index([branchId])
+  @@index([type])
+  @@map("bans")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  branchId   String?
+  actorId    String
+  actorRole  String
+  action     String
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  branch Branch? @relation(fields: [branchId], references: [id])
+  actor  Staff   @relation(fields: [actorId], references: [id])
+
+  @@index([branchId])
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
