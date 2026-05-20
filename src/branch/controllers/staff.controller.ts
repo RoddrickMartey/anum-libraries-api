@@ -11,7 +11,7 @@ import logger from '../../shared/logger.js';
 
 export const listStaff = async (req: Request, res: Response): Promise<void> => {
   try {
-    const branchId = (req as any).staff?.branchId;
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({
@@ -36,8 +36,8 @@ export const listStaff = async (req: Request, res: Response): Promise<void> => {
 
 export const getStaff = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({
@@ -84,8 +84,8 @@ export const createStaff = async (
   }
 
   try {
-    const branchId = (req as any).staff?.branchId;
-    const createdBy = (req as any).staff?.staffId;
+    const branchId = req.staff?.branchId;
+    const createdBy = req.staff?.id;
 
     if (!branchId || !createdBy) {
       res.status(403).json({
@@ -136,8 +136,8 @@ export const updateStaff = async (
   }
 
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({
@@ -181,8 +181,8 @@ export const deleteStaff = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({
@@ -229,8 +229,8 @@ export const changePassword = async (
   }
 
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({
@@ -277,8 +277,8 @@ export const deactivateStaff = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({

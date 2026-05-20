@@ -8,7 +8,7 @@ import logger from '../../shared/logger.js';
 
 export const listBooks = async (req: Request, res: Response): Promise<void> => {
   try {
-    const branchId = (req as any).staff?.branchId;
+    const branchId = req.staff?.branchId;
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(100, parseInt(req.query.limit as string) || 20);
     const skip = (page - 1) * limit;
@@ -30,8 +30,8 @@ export const listBooks = async (req: Request, res: Response): Promise<void> => {
 
 export const getBook = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -67,8 +67,8 @@ export const createBook = async (
   }
 
   try {
-    const branchId = (req as any).staff?.branchId;
-    const createdBy = (req as any).staff?.staffId;
+    const branchId = req.staff?.branchId;
+    const createdBy = req.staff?.id;
 
     if (!branchId || !createdBy) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -104,8 +104,8 @@ export const updateBook = async (
   }
 
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -131,8 +131,8 @@ export const deleteBook = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });

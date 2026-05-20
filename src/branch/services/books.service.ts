@@ -116,7 +116,6 @@ export const updateBook = async (
       genre: input.genre,
       description: input.description,
       shelfLocation: input.shelfLocation,
-      updatedAt: new Date(),
     },
     select: {
       id: true,

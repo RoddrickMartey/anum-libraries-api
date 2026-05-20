@@ -1,0 +1,57 @@
+Simple Report — Source Scan
+Generated: 2026-05-20
+
+Scope:
+- Scanned the `src` tree (excluding node_modules) and reviewed key files for security and implementation notes.
+
+Created:
+- `anum-libraries-api/vulnerabilities.txt` — contains npm audit results + code-level findings.
+
+Inspected files:
+- src/app.ts
+- src/branch/services/auth.service.ts
+- src/branch/controllers/auth.controller.ts
+- src/shared/utils/jwt.ts
+- src/branch/services/staff.service.ts
+- src/shared/logger.ts
+
+Dependency audit (npm):
+- 3 moderate issues reported — @hono/node-server, @prisma/dev, prisma.
+- Recommendation: review and test upgrade to prisma@6.19.3.
+
+Auth / JWT:
+- Tokens are signed/verified with environment secrets; `verify` is called without explicit `algorithms` or extra claim validation.
+- Consider specifying algorithms and validating `aud/iss/jti`.
+
+Refresh tokens:
+- Implemented as JWTs stored in httpOnly cookies and not tracked server-side; no revocation/rotation mechanism.
+
+Cookies & CORS:
+- Cookies are `httpOnly` and `sameSite: 'strict'`.
+- `secure` is set only in production — ensure production uses HTTPS.
+- `app.ts` uses `origin: env.CORS_ORIGINS.split(',')` with `credentials: true` — ensure `CORS_ORIGINS` is not `*`.
+
+Rate limiting:
+- `express-rate-limit` is present in dependencies but not applied to auth endpoints — protect `/api/v1/auth/login` and `/api/v1/auth/refresh`.
+
+Password hashing:
+- Uses `bcrypt` with `BCRYPT_ROUNDS` (default 12) — acceptable; tune per policy.
+
+Input validation:
+- Zod is used broadly — maintain validators for all public endpoints.
+
+Prisma raw SQL:
+- Generated Prisma includes `$queryRaw` and `$executeRaw` signatures; project currently does not use unsafe raw queries.
+
+Logging:
+- `logger.error(..., { error })` may serialize stack traces or sensitive fields — sanitize before logging.
+
+Recommendations (next steps):
+- Add rate limiting to auth routes.
+- Validate `CORS_ORIGINS` at startup and disallow `*` when `credentials: true`.
+- Implement refresh token rotation or server-side allowlist for revocation.
+- Harden JWT verification: set `algorithms`, validate `aud`/`iss`, consider `jti` for revocation.
+- Sanitize logs to avoid leaking secrets.
+- Plan and test dependency upgrades (prisma -> 6.19.3).
+
+Would you like me to implement one of the recommended fixes now (rate limiting, refresh rotation, JWT hardening, or upgrade prisma)?

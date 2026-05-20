@@ -30,9 +30,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Set refresh token as httpOnly cookie
     res.cookie(TOKEN_COOKIE_NAME, data.refreshToken, COOKIE_OPTIONS);
+    res.cookie('accessToken', data.accessToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: 15 * 60 * 1000, // 15 minutes for access token
+    });
 
     res.status(200).json({
-      accessToken: data.accessToken,
       staff: data.staff,
     });
   } catch (error) {
@@ -75,7 +78,11 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
 
   try {
     const data = authService.refresh(token);
-    res.status(200).json({ accessToken: data.accessToken });
+    res.cookie('accessToken', data.accessToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: 15 * 60 * 1000, // 15 minutes for access token
+    });
+    res.status(200).json({ message: 'Token refreshed successfully' });
   } catch {
     res.status(401).json({
       error: 'Invalid or expired refresh token',
@@ -88,6 +95,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
 
 export const logout = (_req: Request, res: Response): void => {
   res.clearCookie(TOKEN_COOKIE_NAME, COOKIE_OPTIONS);
+  res.clearCookie('accessToken', COOKIE_OPTIONS);
   res.status(200).json({ message: 'Logged out successfully' });
 };
 
@@ -95,7 +103,7 @@ export const logout = (_req: Request, res: Response): void => {
 
 export const getMe = async (req: Request, res: Response): Promise<void> => {
   try {
-    const staffId = req.headers['x-staff-id'] as string;
+    const staffId = req.staff?.id;
 
     if (!staffId) {
       res.status(401).json({

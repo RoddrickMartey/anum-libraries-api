@@ -1,12 +1,18 @@
 import type { Request, Response } from 'express';
 import * as finesService from '../services/fines.service.js';
-import { createFineSchema, updateFineSchema } from '../validators/fines.validator.js';
+import {
+  createFineSchema,
+  updateFineSchema,
+} from '../validators/fines.validator.js';
 import logger from '../../shared/logger.js';
 
-export const listFinesByMember = async (req: Request, res: Response): Promise<void> => {
+export const listFinesByMember = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
-    const { memberId } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { memberId } = req.params as { memberId: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -17,14 +23,16 @@ export const listFinesByMember = async (req: Request, res: Response): Promise<vo
     res.status(200).json({ data: fines });
   } catch (error) {
     logger.error('Error listing fines', { error });
-    res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    res
+      .status(500)
+      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
   }
 };
 
 export const getFine = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -39,11 +47,16 @@ export const getFine = async (req: Request, res: Response): Promise<void> => {
       return;
     }
     logger.error('Error fetching fine', { error });
-    res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    res
+      .status(500)
+      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
   }
 };
 
-export const createFine = async (req: Request, res: Response): Promise<void> => {
+export const createFine = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   const result = createFineSchema.safeParse(req.body);
   if (!result.success) {
     res.status(422).json({
@@ -55,8 +68,8 @@ export const createFine = async (req: Request, res: Response): Promise<void> => 
   }
 
   try {
-    const branchId = (req as any).staff?.branchId;
-    const staffId = (req as any).staff?.staffId;
+    const branchId = req.staff?.branchId;
+    const staffId = req.staff?.id;
 
     if (!branchId || !staffId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -67,15 +80,22 @@ export const createFine = async (req: Request, res: Response): Promise<void> => 
     res.status(201).json({ data: fine });
   } catch (error) {
     if (error instanceof Error && error.message === 'MEMBER_NOT_FOUND') {
-      res.status(404).json({ error: 'Member not found', code: 'MEMBER_NOT_FOUND' });
+      res
+        .status(404)
+        .json({ error: 'Member not found', code: 'MEMBER_NOT_FOUND' });
       return;
     }
     logger.error('Error creating fine', { error });
-    res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    res
+      .status(500)
+      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
   }
 };
 
-export const updateFine = async (req: Request, res: Response): Promise<void> => {
+export const updateFine = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   const result = updateFineSchema.safeParse(req.body);
   if (!result.success) {
     res.status(422).json({
@@ -87,8 +107,8 @@ export const updateFine = async (req: Request, res: Response): Promise<void> => 
   }
 
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -103,14 +123,16 @@ export const updateFine = async (req: Request, res: Response): Promise<void> => 
       return;
     }
     logger.error('Error updating fine', { error });
-    res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    res
+      .status(500)
+      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
   }
 };
 
 export const waiveFine = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -125,6 +147,8 @@ export const waiveFine = async (req: Request, res: Response): Promise<void> => {
       return;
     }
     logger.error('Error waiving fine', { error });
-    res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    res
+      .status(500)
+      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
   }
 };

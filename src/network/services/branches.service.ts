@@ -100,7 +100,6 @@ export const updateBranch = async (
       email: input.email,
       isActive: input.isActive,
       loanRules: input.loanRules,
-      updatedAt: new Date(),
     },
     select: {
       id: true,

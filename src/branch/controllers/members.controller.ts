@@ -11,7 +11,7 @@ export const listMembers = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const branchId = (req as any).staff?.branchId;
+    const branchId = req.staff?.branchId;
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(100, parseInt(req.query.limit as string) || 20);
     const skip = (page - 1) * limit;
@@ -33,8 +33,8 @@ export const listMembers = async (
 
 export const getMember = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -72,8 +72,8 @@ export const createMember = async (
   }
 
   try {
-    const branchId = (req as any).staff?.branchId;
-    const createdBy = (req as any).staff?.staffId;
+    const branchId = req.staff?.branchId;
+    const createdBy = req.staff?.id;
 
     if (!branchId || !createdBy) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -91,12 +91,10 @@ export const createMember = async (
       error instanceof Error &&
       error.message === 'CARD_NUMBER_ALREADY_EXISTS'
     ) {
-      res
-        .status(409)
-        .json({
-          error: 'Card number already exists',
-          code: 'CARD_NUMBER_ALREADY_EXISTS',
-        });
+      res.status(409).json({
+        error: 'Card number already exists',
+        code: 'CARD_NUMBER_ALREADY_EXISTS',
+      });
       return;
     }
     logger.error('Error creating member', { error });
@@ -121,8 +119,8 @@ export const updateMember = async (
   }
 
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -150,8 +148,8 @@ export const suspendMember = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });

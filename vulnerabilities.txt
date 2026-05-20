@@ -1,0 +1,30 @@
+Short vulnerability list — generated 2026-05-20
+
+Code-level findings (scanned `src`) — generated 2026-05-20
+
+- Missing rate limiting on auth endpoints — moderate risk
+  - `express-rate-limit` is installed but not configured; login and refresh endpoints are unprotected against brute-force.
+
+- CORS origin configuration risk
+  - `app.ts` uses `origin: env.CORS_ORIGINS.split(',')` with `credentials: true`.
+  - If `CORS_ORIGINS` is misconfigured (e.g., `*`), it may expose cookies to untrusted origins.
+
+- Refresh token revocation / rotation absent
+  - Refresh tokens are JWTs stored only in client cookies and not tracked server-side; stolen refresh tokens cannot be revoked.
+
+- Logging may leak sensitive data
+  - Controllers log error objects (`logger.error(..., { error })`) which can contain stacks or sensitive fields; consider redacting before logging.
+
+- JWT verification/signing hardening
+  - `verifyAccessToken` calls `jwt.verify(token, env.JWT_SECRET)` without specifying allowed algorithms; consider explicitly setting `algorithms` and validating token claims.
+
+- Cookie handling notes
+  - Cookies are `httpOnly` and `sameSite: 'strict'` (good). `secure` is set only in production — ensure HTTPS in production.
+
+Recommendations (code changes):
+  - Add rate limiting to `/api/v1/auth/login` and sensitive endpoints.
+  - Validate `CORS_ORIGINS` at startup; disallow `*` when `credentials: true`.
+  - Implement refresh token rotation or server-side allowlist for token revocation.
+  - Avoid logging raw error objects; sanitize logs to remove secrets.
+  - Harden JWT handling: set algorithms, short expiry, and optional token jti for revocation.
+

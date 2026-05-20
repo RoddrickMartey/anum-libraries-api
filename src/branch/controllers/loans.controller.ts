@@ -12,8 +12,8 @@ export const listActiveLoansByMember = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { memberId } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { memberId } = req.params as { memberId: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -32,8 +32,8 @@ export const listActiveLoansByMember = async (
 
 export const getLoan = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -69,8 +69,8 @@ export const checkOutCopy = async (
   }
 
   try {
-    const branchId = (req as any).staff?.branchId;
-    const staffId = (req as any).staff?.staffId;
+    const branchId = req.staff?.branchId;
+    const staffId = req.staff?.id;
 
     if (!branchId || !staffId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -128,9 +128,9 @@ export const checkInCopy = async (
   }
 
   try {
-    const { loanId } = req.params;
-    const branchId = (req as any).staff?.branchId;
-    const staffId = (req as any).staff?.staffId;
+    const { loanId } = req.params as { loanId: string };
+    const branchId = req.staff?.branchId;
+    const staffId = req.staff?.id;
 
     if (!branchId || !staffId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -174,8 +174,8 @@ export const renewLoan = async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const { loanId } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { loanId } = req.params as { loanId: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });

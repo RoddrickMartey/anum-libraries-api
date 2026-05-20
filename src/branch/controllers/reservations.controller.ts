@@ -8,8 +8,8 @@ export const listReservationsByBook = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { bookId } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { bookId } = req.params as { bookId: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -34,8 +34,8 @@ export const listReservationsByMember = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { memberId } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { memberId } = req.params as { memberId: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -70,8 +70,8 @@ export const createReservation = async (
   }
 
   try {
-    const branchId = (req as any).staff?.branchId;
-    const staffId = (req as any).staff?.staffId;
+    const branchId = req.staff?.branchId;
+    const staffId = req.staff?.id;
 
     if (!branchId || !staffId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -107,8 +107,8 @@ export const cancelReservation = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { reservationId } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { reservationId } = req.params as { reservationId: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -119,12 +119,10 @@ export const cancelReservation = async (
     res.status(200).json({ message: 'Reservation cancelled' });
   } catch (error) {
     if (error instanceof Error && error.message === 'RESERVATION_NOT_FOUND') {
-      res
-        .status(404)
-        .json({
-          error: 'Reservation not found',
-          code: 'RESERVATION_NOT_FOUND',
-        });
+      res.status(404).json({
+        error: 'Reservation not found',
+        code: 'RESERVATION_NOT_FOUND',
+      });
       return;
     }
     logger.error('Error cancelling reservation', { error });
@@ -139,8 +137,8 @@ export const notifyReservation = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { reservationId } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { reservationId } = req.params as { reservationId: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -151,12 +149,10 @@ export const notifyReservation = async (
     res.status(200).json({ message: 'Reservation marked as ready' });
   } catch (error) {
     if (error instanceof Error && error.message === 'RESERVATION_NOT_FOUND') {
-      res
-        .status(404)
-        .json({
-          error: 'Reservation not found',
-          code: 'RESERVATION_NOT_FOUND',
-        });
+      res.status(404).json({
+        error: 'Reservation not found',
+        code: 'RESERVATION_NOT_FOUND',
+      });
       return;
     }
     logger.error('Error notifying reservation', { error });

@@ -11,8 +11,8 @@ export const listCopiesByBook = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { bookId } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { bookId } = req.params as { bookId: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -31,8 +31,8 @@ export const listCopiesByBook = async (
 
 export const getCopy = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -68,7 +68,7 @@ export const createCopy = async (
   }
 
   try {
-    const branchId = (req as any).staff?.branchId;
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -83,12 +83,10 @@ export const createCopy = async (
       return;
     }
     if (error instanceof Error && error.message === 'BARCODE_ALREADY_EXISTS') {
-      res
-        .status(409)
-        .json({
-          error: 'Barcode already exists',
-          code: 'BARCODE_ALREADY_EXISTS',
-        });
+      res.status(409).json({
+        error: 'Barcode already exists',
+        code: 'BARCODE_ALREADY_EXISTS',
+      });
       return;
     }
     logger.error('Error creating copy', { error });
@@ -113,8 +111,8 @@ export const updateCopy = async (
   }
 
   try {
-    const { id } = req.params;
-    const branchId = (req as any).staff?.branchId;
+    const { id } = req.params as { id: string };
+    const branchId = req.staff?.branchId;
 
     if (!branchId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
