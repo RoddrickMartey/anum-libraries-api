@@ -11,7 +11,7 @@ export const listNetworkBansByMember = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { memberId } = req.params;
+    const { memberId } = req.params as { memberId: string };
 
     const bans = await networkBansService.getNetworkBansByMember(memberId);
     res.status(200).json({ data: bans });
@@ -38,7 +38,7 @@ export const createNetworkBan = async (
   }
 
   try {
-    const staffId = (req as any).staff?.staffId;
+    const staffId = req.staff?.id;
 
     if (!staffId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
@@ -76,8 +76,8 @@ export const revokeNetworkBan = async (
   }
 
   try {
-    const { banId } = req.params;
-    const staffId = (req as any).staff?.staffId;
+    const { banId } = req.params as { banId: string };
+    const staffId = req.staff?.id;
 
     if (!staffId) {
       res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });

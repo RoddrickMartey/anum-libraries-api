@@ -1,3 +1,5 @@
+// src/network/controllers/branches.controller.ts
+
 import type { Request, Response } from 'express';
 import * as branchesService from '../services/branches.service.js';
 import {
@@ -27,7 +29,7 @@ export const listBranches = async (
 
 export const getBranch = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const branch = await branchesService.getBranchById(id);
     res.status(200).json({ data: branch });
@@ -63,10 +65,20 @@ export const createBranch = async (
     const branch = await branchesService.createBranch(result.data);
     res.status(201).json({ data: branch });
   } catch (error) {
-    logger.error('Error creating branch', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    if (error instanceof Error && error.message === 'ADMIN_EMAIL_TAKEN') {
+      res.status(409).json({
+        error: 'A staff account with that admin email already exists',
+        code: 'ADMIN_EMAIL_TAKEN',
+      });
+      return;
+    }
+    logger.error('Error creating branch', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(500).json({
+      error: 'Internal server error',
+      code: 'INTERNAL_SERVER_ERROR',
+    });
   }
 };
 
@@ -85,7 +97,7 @@ export const updateBranch = async (
   }
 
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const branch = await branchesService.updateBranch(id, result.data);
     res.status(200).json({ data: branch });
@@ -108,7 +120,7 @@ export const deactivateBranch = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     await branchesService.deactivateBranch(id);
     res.status(200).json({ message: 'Branch deactivated successfully' });

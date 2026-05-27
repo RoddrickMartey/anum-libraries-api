@@ -1,3 +1,5 @@
+// src/network/routes/branches.ts
+
 import { Router } from 'express';
 import * as branchesController from '../controllers/branches.controller.js';
 import { networkAuth } from '../middleware/networkAuth.js';

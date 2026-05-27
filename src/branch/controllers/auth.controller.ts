@@ -55,7 +55,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           return;
       }
     }
-    logger.error('Unexpected error during login', { error });
+    logger.error('Unexpected error during login', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     res.status(500).json({
       error: 'Internal server error',
       code: 'INTERNAL_SERVER_ERROR',
@@ -104,7 +107,7 @@ export const logout = (_req: Request, res: Response): void => {
 export const getMe = async (req: Request, res: Response): Promise<void> => {
   try {
     const staffId = req.staff?.id;
-
+    logger.info('Fetching staff details', { staffId });
     if (!staffId) {
       res.status(401).json({
         error: 'Unauthorised',

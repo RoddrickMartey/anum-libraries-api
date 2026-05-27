@@ -69,8 +69,9 @@ export const createStaff = async (
     throw new Error('EMAIL_ALREADY_EXISTS');
   }
 
+  const tempPassword = 'AnumStaff@2024';
   // Hash password
-  const passwordHash = await bcrypt.hash(input.password, env.BCRYPT_ROUNDS);
+  const passwordHash = await bcrypt.hash(tempPassword, env.BCRYPT_ROUNDS);
 
   const staff = await prisma.staff.create({
     data: {
@@ -81,6 +82,7 @@ export const createStaff = async (
       passwordHash,
       role: input.role,
       createdBy,
+      mustChangePassword: true,
     },
     select: {
       id: true,
@@ -89,6 +91,7 @@ export const createStaff = async (
       email: true,
       role: true,
       isActive: true,
+      mustChangePassword: true,
       createdAt: true,
     },
   });
@@ -211,7 +214,7 @@ export const changePassword = async (
 
   await prisma.staff.update({
     where: { id: staffId },
-    data: { passwordHash: newPasswordHash },
+    data: { passwordHash: newPasswordHash, mustChangePassword: false },
   });
 
   logger.info('Staff member password changed', { staffId });

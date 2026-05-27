@@ -108,6 +108,7 @@ model Staff {
   passwordHash String
   role         Role
   isActive     Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   createdBy    String?

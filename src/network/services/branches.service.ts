@@ -1,5 +1,8 @@
 import prisma from '../../shared/prisma.js';
 import logger from '../../shared/logger.js';
+import bcrypt from 'bcrypt';
+import env from '../../config/env.js';
+import { DEFAULT_LOAN_RULES } from '../../config/constants.js';
 import type {
   CreateBranchInput,
   UpdateBranchInput,
@@ -55,27 +58,74 @@ export const getBranchById = async (branchId: string) => {
 };
 
 export const createBranch = async (input: CreateBranchInput) => {
-  const branch = await prisma.branch.create({
-    data: {
-      name: input.name,
-      town: input.town,
-      address: input.address,
-      phone: input.phone,
-      email: input.email,
-      loanRules: input.loanRules || {},
-    },
-    select: {
-      id: true,
-      name: true,
-      town: true,
-      address: true,
-      isActive: true,
-      createdAt: true,
-    },
+  // Check admin email not already in use
+  const existingStaff = await prisma.staff.findUnique({
+    where: { email: input.adminEmail },
   });
 
-  logger.info('Branch created', { branchId: branch.id });
-  return branch;
+  if (existingStaff) {
+    throw new Error('ADMIN_EMAIL_TAKEN');
+  }
+
+  const tempPassword = 'AnumStaff@2024';
+  const passwordHash = await bcrypt.hash(tempPassword, env.BCRYPT_ROUNDS);
+
+  // Create branch + admin account in one transaction
+  const result = await prisma.$transaction(async (tx) => {
+    const branch = await tx.branch.create({
+      data: {
+        name: input.name,
+        town: input.town,
+        address: input.address,
+        phone: input.phone,
+        email: input.email,
+        loanRules: input.loanRules || DEFAULT_LOAN_RULES,
+      },
+    });
+
+    const admin = await tx.staff.create({
+      data: {
+        branchId: branch.id,
+        firstName: input.adminFirstName,
+        lastName: input.adminLastName,
+        email: input.adminEmail,
+        passwordHash,
+        role: 'BRANCH_ADMIN',
+        isActive: true,
+        mustChangePassword: true,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        mustChangePassword: true,
+      },
+    });
+
+    return { branch, admin };
+  });
+
+  logger.info('Branch created with admin account', {
+    branchId: result.branch.id,
+    adminId: result.admin.id,
+  });
+
+  // Return temp password so SUPER_ADMIN can share it with the new admin
+  // In production this would be emailed instead
+  return {
+    branch: {
+      id: result.branch.id,
+      name: result.branch.name,
+      town: result.branch.town,
+      address: result.branch.address,
+      isActive: result.branch.isActive,
+      createdAt: result.branch.createdAt,
+    },
+    admin: result.admin,
+    tempPassword, // Remove this once email notifications are set up
+  };
 };
 
 export const updateBranch = async (
@@ -107,7 +157,7 @@ export const updateBranch = async (
       town: true,
       address: true,
       isActive: true,
-      createdAt: true,
+      updatedAt: true,
     },
   });
 

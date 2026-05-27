@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import prisma from '../../shared/prisma.js';
 import logger from '../../shared/logger.js';
 import env from '../../config/env.js';
@@ -42,6 +42,7 @@ export const login = async (input: LoginInput) => {
       passwordHash: true,
       role: true,
       isActive: true,
+      mustChangePassword: true,
     },
   });
 
@@ -82,6 +83,7 @@ export const login = async (input: LoginInput) => {
   return {
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
+    mustChangePassword: staff.mustChangePassword,
     staff: {
       id: staff.id,
       firstName: staff.firstName,
@@ -89,6 +91,7 @@ export const login = async (input: LoginInput) => {
       email: staff.email,
       role: staff.role,
       branchId: staff.branchId,
+      mustChangePassword: staff.mustChangePassword,
     },
   };
 };

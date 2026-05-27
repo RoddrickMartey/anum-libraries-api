@@ -16,9 +16,6 @@ export const createStaffSchema = z.object({
     .email('Invalid email address')
     .toLowerCase()
     .trim(),
-  password: z
-    .string({ error: 'Password is required' })
-    .min(8, 'Password must be at least 8 characters'),
   role: z.enum(
     ['BRANCH_ADMIN', 'SENIOR_LIBRARIAN', 'LIBRARIAN', 'DESK_STAFF'],
     {
@@ -59,8 +56,14 @@ export const changePasswordSchema = z.object({
     .string({ error: 'Current password is required' })
     .min(1, 'Current password is required'),
   newPassword: z
-    .string({ error: 'New password is required' })
-    .min(8, 'New password must be at least 8 characters'),
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(
+      /[^A-Za-z0-9]/,
+      'Password must contain at least one special character',
+    ),
 });
 
 export type CreateStaffInput = z.infer<typeof createStaffSchema>;

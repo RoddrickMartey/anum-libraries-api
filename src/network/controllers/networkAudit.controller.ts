@@ -33,7 +33,10 @@ export const getAuditLogsByEntity = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { entityType, entityId } = req.params;
+    const { entityType, entityId } = req.params as {
+      entityType: string;
+      entityId: string;
+    };
 
     if (!entityType || !entityId) {
       res.status(422).json({
@@ -58,7 +61,7 @@ export const getAuditLogsByActor = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { actorId } = req.params;
+    const { actorId } = req.params as { actorId: string };
 
     if (!actorId) {
       res.status(422).json({
