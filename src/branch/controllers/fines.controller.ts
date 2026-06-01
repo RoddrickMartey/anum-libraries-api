@@ -1,154 +1,129 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import * as finesService from '../services/fines.service.js';
 import {
   createFineSchema,
   updateFineSchema,
 } from '../validators/fines.validator.js';
-import logger from '../../shared/logger.js';
+import { AppError } from '../../shared/utils/appError.js';
 
 export const listFinesByMember = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { memberId } = req.params as { memberId: string };
     const branchId = req.staff?.branchId;
 
     if (!branchId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     const fines = await finesService.getFinesByMember(memberId, branchId);
     res.status(200).json({ data: fines });
   } catch (error) {
-    logger.error('Error listing fines', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
 
-export const getFine = async (req: Request, res: Response): Promise<void> => {
+export const getFine = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const { id } = req.params as { id: string };
     const branchId = req.staff?.branchId;
 
     if (!branchId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     const fine = await finesService.getFineById(id, branchId);
     res.status(200).json({ data: fine });
   } catch (error) {
     if (error instanceof Error && error.message === 'FINE_NOT_FOUND') {
-      res.status(404).json({ error: 'Fine not found', code: 'FINE_NOT_FOUND' });
-      return;
+      return next(new AppError(404, 'FINE_NOT_FOUND', 'Fine not found'));
     }
-    logger.error('Error fetching fine', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
 
 export const createFine = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
-  const result = createFineSchema.safeParse(req.body);
-  if (!result.success) {
-    res.status(422).json({
-      error: 'Validation failed',
-      code: 'VALIDATION_ERROR',
-      details: result.error.flatten().fieldErrors,
-    });
-    return;
-  }
-
   try {
+    const result = createFineSchema.safeParse(req.body);
+    if (!result.success) {
+      throw result.error;
+    }
+
     const branchId = req.staff?.branchId;
     const staffId = req.staff?.id;
 
     if (!branchId || !staffId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     const fine = await finesService.createFine(result.data, branchId, staffId);
     res.status(201).json({ data: fine });
   } catch (error) {
     if (error instanceof Error && error.message === 'MEMBER_NOT_FOUND') {
-      res
-        .status(404)
-        .json({ error: 'Member not found', code: 'MEMBER_NOT_FOUND' });
-      return;
+      return next(new AppError(404, 'MEMBER_NOT_FOUND', 'Member not found'));
     }
-    logger.error('Error creating fine', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
 
 export const updateFine = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
-  const result = updateFineSchema.safeParse(req.body);
-  if (!result.success) {
-    res.status(422).json({
-      error: 'Validation failed',
-      code: 'VALIDATION_ERROR',
-      details: result.error.flatten().fieldErrors,
-    });
-    return;
-  }
-
   try {
+    const result = updateFineSchema.safeParse(req.body);
+    if (!result.success) {
+      throw result.error;
+    }
+
     const { id } = req.params as { id: string };
     const branchId = req.staff?.branchId;
 
     if (!branchId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     const fine = await finesService.updateFine(id, branchId, result.data);
     res.status(200).json({ data: fine });
   } catch (error) {
     if (error instanceof Error && error.message === 'FINE_NOT_FOUND') {
-      res.status(404).json({ error: 'Fine not found', code: 'FINE_NOT_FOUND' });
-      return;
+      return next(new AppError(404, 'FINE_NOT_FOUND', 'Fine not found'));
     }
-    logger.error('Error updating fine', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
 
-export const waiveFine = async (req: Request, res: Response): Promise<void> => {
+export const waiveFine = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const { id } = req.params as { id: string };
     const branchId = req.staff?.branchId;
 
     if (!branchId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     await finesService.waivedFine(id, branchId);
     res.status(200).json({ message: 'Fine waived' });
   } catch (error) {
     if (error instanceof Error && error.message === 'FINE_NOT_FOUND') {
-      res.status(404).json({ error: 'Fine not found', code: 'FINE_NOT_FOUND' });
-      return;
+      return next(new AppError(404, 'FINE_NOT_FOUND', 'Fine not found'));
     }
-    logger.error('Error waiving fine', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };

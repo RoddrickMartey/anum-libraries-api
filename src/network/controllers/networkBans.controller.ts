@@ -1,14 +1,15 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import * as networkBansService from '../services/networkBans.service.js';
 import {
   createNetworkBanSchema,
   revokeNetworkBanSchema,
 } from '../validators/networkBans.validator.js';
-import logger from '../../shared/logger.js';
+import { AppError } from '../../shared/utils/appError.js';
 
 export const listNetworkBansByMember = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { memberId } = req.params as { memberId: string };
@@ -16,84 +17,61 @@ export const listNetworkBansByMember = async (
     const bans = await networkBansService.getNetworkBansByMember(memberId);
     res.status(200).json({ data: bans });
   } catch (error) {
-    logger.error('Error listing network bans', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
 
 export const createNetworkBan = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
-  const result = createNetworkBanSchema.safeParse(req.body);
-  if (!result.success) {
-    res.status(422).json({
-      error: 'Validation failed',
-      code: 'VALIDATION_ERROR',
-      details: result.error.flatten().fieldErrors,
-    });
-    return;
-  }
-
   try {
+    const result = createNetworkBanSchema.safeParse(req.body);
+    if (!result.success) {
+      throw result.error;
+    }
+
     const staffId = req.staff?.id;
 
     if (!staffId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     const ban = await networkBansService.createNetworkBan(result.data, staffId);
     res.status(201).json({ data: ban });
   } catch (error) {
     if (error instanceof Error && error.message === 'MEMBER_NOT_FOUND') {
-      res
-        .status(404)
-        .json({ error: 'Member not found', code: 'MEMBER_NOT_FOUND' });
-      return;
+      return next(new AppError(404, 'MEMBER_NOT_FOUND', 'Member not found'));
     }
-    logger.error('Error creating network ban', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
 
 export const revokeNetworkBan = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
-  const result = revokeNetworkBanSchema.safeParse(req.body);
-  if (!result.success) {
-    res.status(422).json({
-      error: 'Validation failed',
-      code: 'VALIDATION_ERROR',
-      details: result.error.flatten().fieldErrors,
-    });
-    return;
-  }
-
   try {
+    const result = revokeNetworkBanSchema.safeParse(req.body);
+    if (!result.success) {
+      throw result.error;
+    }
+
     const { banId } = req.params as { banId: string };
     const staffId = req.staff?.id;
 
     if (!staffId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     await networkBansService.revokeNetworkBan(banId, result.data, staffId);
     res.status(200).json({ message: 'Network ban revoked successfully' });
   } catch (error) {
     if (error instanceof Error && error.message === 'BAN_NOT_FOUND') {
-      res.status(404).json({ error: 'Ban not found', code: 'BAN_NOT_FOUND' });
-      return;
+      return next(new AppError(404, 'BAN_NOT_FOUND', 'Ban not found'));
     }
-    logger.error('Error revoking network ban', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };

@@ -1,8 +1,9 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import * as authService from '../services/auth.service.js';
 import { loginSchema } from '../validators/auth.validator.js';
 import { TOKEN_COOKIE_NAME } from '../../config/constants.js';
 import logger from '../../shared/logger.js';
+import { AppError } from '../../shared/utils/appError.js';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -13,19 +14,18 @@ const COOKIE_OPTIONS = {
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 
-export const login = async (req: Request, res: Response): Promise<void> => {
-  // Validate input
-  const result = loginSchema.safeParse(req.body);
-  if (!result.success) {
-    res.status(422).json({
-      error: 'Validation failed',
-      code: 'VALIDATION_ERROR',
-      details: result.error.flatten().fieldErrors,
-    });
-    return;
-  }
-
+export const login = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
+    // Validate input
+    const result = loginSchema.safeParse(req.body);
+    if (!result.success) {
+      throw result.error;
+    }
+
     const data = await authService.login(result.data);
 
     // Set refresh token as httpOnly cookie
@@ -42,55 +42,62 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     if (error instanceof Error) {
       switch (error.message) {
         case 'INVALID_CREDENTIALS':
-          res.status(401).json({
-            error: 'Invalid email or password',
-            code: 'INVALID_CREDENTIALS',
-          });
-          return;
+          return next(
+            new AppError(
+              401,
+              'INVALID_CREDENTIALS',
+              'Invalid email or password',
+            ),
+          );
         case 'ACCOUNT_DISABLED':
-          res.status(403).json({
-            error: 'Your account has been disabled',
-            code: 'ACCOUNT_DISABLED',
-          });
-          return;
+          return next(
+            new AppError(
+              403,
+              'ACCOUNT_DISABLED',
+              'Your account has been disabled',
+            ),
+          );
       }
     }
     logger.error('Unexpected error during login', {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
-    res.status(500).json({
-      error: 'Internal server error',
-      code: 'INTERNAL_SERVER_ERROR',
-    });
+    next(error);
   }
 };
 
 // ─── REFRESH ──────────────────────────────────────────────────────────────────
 
-export const refresh = async (req: Request, res: Response): Promise<void> => {
-  const token = req.cookies[TOKEN_COOKIE_NAME];
-
-  if (!token) {
-    res.status(401).json({
-      error: 'Refresh token missing',
-      code: 'REFRESH_TOKEN_MISSING',
-    });
-    return;
-  }
-
+export const refresh = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
+    const token = req.cookies[TOKEN_COOKIE_NAME];
+
+    if (!token) {
+      throw new AppError(401, 'REFRESH_TOKEN_MISSING', 'Refresh token missing');
+    }
+
     const data = authService.refresh(token);
     res.cookie('accessToken', data.accessToken, {
       ...COOKIE_OPTIONS,
       maxAge: 15 * 60 * 1000, // 15 minutes for access token
     });
     res.status(200).json({ message: 'Token refreshed successfully' });
-  } catch {
-    res.status(401).json({
-      error: 'Invalid or expired refresh token',
-      code: 'INVALID_REFRESH_TOKEN',
-    });
+  } catch (error) {
+    if (error instanceof AppError) {
+      return next(error);
+    }
+    next(
+      new AppError(
+        401,
+        'INVALID_REFRESH_TOKEN',
+        'Invalid or expired refresh token',
+      ),
+    );
   }
 };
 

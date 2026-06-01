@@ -1,14 +1,15 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import * as bansService from '../services/bans.service.js';
 import {
   createBanSchema,
   revokeBanSchema,
 } from '../validators/bans.validator.js';
-import logger from '../../shared/logger.js';
+import { AppError } from '../../shared/utils/appError.js';
 
 export const listBansByMember = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { memberId } = req.params as { memberId: string };
@@ -17,84 +18,66 @@ export const listBansByMember = async (
     const bans = await bansService.getBansByMember(memberId, branchId);
     res.status(200).json({ data: bans });
   } catch (error) {
-    logger.error('Error listing bans', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
 
-export const createBan = async (req: Request, res: Response): Promise<void> => {
-  const result = createBanSchema.safeParse(req.body);
-  if (!result.success) {
-    res.status(422).json({
-      error: 'Validation failed',
-      code: 'VALIDATION_ERROR',
-      details: result.error.flatten().fieldErrors,
-    });
-    return;
-  }
-
+export const createBan = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
+    const result = createBanSchema.safeParse(req.body);
+    if (!result.success) {
+      throw result.error;
+    }
+
     const branchId = req.staff?.branchId as string;
     const staffId = req.staff?.id as string;
 
     if (!branchId || !staffId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     const ban = await bansService.createBan(result.data, branchId, staffId);
     res.status(201).json({ data: ban });
   } catch (error) {
     if (error instanceof Error && error.message === 'MEMBER_NOT_FOUND') {
-      res
-        .status(404)
-        .json({ error: 'Member not found', code: 'MEMBER_NOT_FOUND' });
-      return;
+      return next(new AppError(404, 'MEMBER_NOT_FOUND', 'Member not found'));
     }
-    logger.error('Error creating ban', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
 
-export const revokeBan = async (req: Request, res: Response): Promise<void> => {
-  const result = revokeBanSchema.safeParse(req.body);
-  if (!result.success) {
-    res.status(422).json({
-      error: 'Validation failed',
-      code: 'VALIDATION_ERROR',
-      details: result.error.flatten().fieldErrors,
-    });
-    return;
-  }
-
+export const revokeBan = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
+    const result = revokeBanSchema.safeParse(req.body);
+    if (!result.success) {
+      throw result.error;
+    }
+
     const { banId } = req.params as { banId: string };
     const branchId = req.staff?.branchId as string;
     const staffId = req.staff?.id as string;
 
     if (!branchId || !staffId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     await bansService.revokeBan(banId, branchId, result.data, staffId);
     res.status(200).json({ message: 'Ban revoked' });
   } catch (error) {
     if (error instanceof Error && error.message === 'BAN_NOT_FOUND') {
-      res.status(404).json({ error: 'Ban not found', code: 'BAN_NOT_FOUND' });
-      return;
+      return next(new AppError(404, 'BAN_NOT_FOUND', 'Ban not found'));
     }
     if (error instanceof Error && error.message === 'UNAUTHORIZED') {
-      res.status(403).json({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
-      return;
+      return next(new AppError(403, 'UNAUTHORIZED', 'Unauthorized'));
     }
-    logger.error('Error revoking ban', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };

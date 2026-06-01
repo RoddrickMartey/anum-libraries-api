@@ -1,19 +1,19 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import * as reservationsService from '../services/reservations.service.js';
 import { createReservationSchema } from '../validators/reservations.validator.js';
-import logger from '../../shared/logger.js';
+import { AppError } from '../../shared/utils/appError.js';
 
 export const listReservationsByBook = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { bookId } = req.params as { bookId: string };
     const branchId = req.staff?.branchId;
 
     if (!branchId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     const reservations = await reservationsService.getReservationsByBook(
@@ -22,24 +22,21 @@ export const listReservationsByBook = async (
     );
     res.status(200).json({ data: reservations });
   } catch (error) {
-    logger.error('Error listing reservations', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
 
 export const listReservationsByMember = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { memberId } = req.params as { memberId: string };
     const branchId = req.staff?.branchId;
 
     if (!branchId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     const reservations = await reservationsService.getReservationsByMember(
@@ -48,34 +45,26 @@ export const listReservationsByMember = async (
     );
     res.status(200).json({ data: reservations });
   } catch (error) {
-    logger.error('Error listing member reservations', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
 
 export const createReservation = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
-  const result = createReservationSchema.safeParse(req.body);
-  if (!result.success) {
-    res.status(422).json({
-      error: 'Validation failed',
-      code: 'VALIDATION_ERROR',
-      details: result.error.flatten().fieldErrors,
-    });
-    return;
-  }
-
   try {
+    const result = createReservationSchema.safeParse(req.body);
+    if (!result.success) {
+      throw result.error;
+    }
+
     const branchId = req.staff?.branchId;
     const staffId = req.staff?.id;
 
     if (!branchId || !staffId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     const reservation = await reservationsService.createReservation(
@@ -86,78 +75,61 @@ export const createReservation = async (
     res.status(201).json({ data: reservation });
   } catch (error) {
     if (error instanceof Error && error.message === 'BOOK_NOT_FOUND') {
-      res.status(404).json({ error: 'Book not found', code: 'BOOK_NOT_FOUND' });
-      return;
+      return next(new AppError(404, 'BOOK_NOT_FOUND', 'Book not found'));
     }
     if (error instanceof Error && error.message === 'MEMBER_NOT_FOUND') {
-      res
-        .status(404)
-        .json({ error: 'Member not found', code: 'MEMBER_NOT_FOUND' });
-      return;
+      return next(new AppError(404, 'MEMBER_NOT_FOUND', 'Member not found'));
     }
-    logger.error('Error creating reservation', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
 
 export const cancelReservation = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { reservationId } = req.params as { reservationId: string };
     const branchId = req.staff?.branchId;
 
     if (!branchId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     await reservationsService.cancelReservation(reservationId, branchId);
     res.status(200).json({ message: 'Reservation cancelled' });
   } catch (error) {
     if (error instanceof Error && error.message === 'RESERVATION_NOT_FOUND') {
-      res.status(404).json({
-        error: 'Reservation not found',
-        code: 'RESERVATION_NOT_FOUND',
-      });
-      return;
+      return next(
+        new AppError(404, 'RESERVATION_NOT_FOUND', 'Reservation not found'),
+      );
     }
-    logger.error('Error cancelling reservation', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
 
 export const notifyReservation = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { reservationId } = req.params as { reservationId: string };
     const branchId = req.staff?.branchId;
 
     if (!branchId) {
-      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return;
+      throw new AppError(403, 'FORBIDDEN', 'Forbidden');
     }
 
     await reservationsService.notifyReservation(reservationId, branchId);
     res.status(200).json({ message: 'Reservation marked as ready' });
   } catch (error) {
     if (error instanceof Error && error.message === 'RESERVATION_NOT_FOUND') {
-      res.status(404).json({
-        error: 'Reservation not found',
-        code: 'RESERVATION_NOT_FOUND',
-      });
-      return;
+      return next(
+        new AppError(404, 'RESERVATION_NOT_FOUND', 'Reservation not found'),
+      );
     }
-    logger.error('Error notifying reservation', { error });
-    res
-      .status(500)
-      .json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' });
+    next(error);
   }
 };
