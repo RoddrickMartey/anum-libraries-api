@@ -24,6 +24,7 @@ export const createBookSchema = z.object({
   genre: z.string().max(50).trim().optional(),
   description: z.string().optional(),
   shelfLocation: z.string().max(50).trim().optional(),
+  base64image: z.string().optional(),
 });
 
 export const updateBookSchema = z.object({
@@ -49,6 +50,7 @@ export const updateBookSchema = z.object({
   genre: z.string().max(50).trim().optional(),
   description: z.string().optional(),
   shelfLocation: z.string().max(50).trim().optional(),
+  base64image: z.string().optional(),
 });
 
 export type CreateBookInput = z.infer<typeof createBookSchema>;

@@ -125,7 +125,7 @@ model Staff {
 }
 
 model Book {
-  id            String    @id @default(uuid())
+  id            String     @id @default(uuid())
   branchId      String
   isbn          String
   title         String
@@ -133,24 +133,41 @@ model Book {
   publisher     String?
   publishedYear Int?
   edition       String?
-  language      String    @default("en")
+  language      String     @default("en")
   genre         String?
   description   String?
   shelfLocation String?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime   @default(now())
   createdBy     String
-  updatedAt     DateTime  @updatedAt
+  updatedAt     DateTime   @updatedAt
   deletedAt     DateTime?
 
   // Relations
   branch       Branch        @relation(fields: [branchId], references: [id])
   copies       Copy[]
   reservations Reservation[]
+  
+  // 1:1 Relation with BookCover
+  cover        BookCover?
 
   @@index([branchId])
   @@index([isbn])
   @@index([title])
   @@map("books")
+}
+
+model BookCover {
+  id         String   @id @default(uuid())
+  bookId     String   @unique // @unique enforces the 1:1 constraint
+  url        String   @default("https://res.cloudinary.com/dtehqyxpu/image/upload/v1780320762/book_default_ujkqom.webp") // The full secure URL to display the image
+  publicId   String   // The Cloudinary public_id (e.g., "covers/book_123") used for easy deletion
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  book       Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@map("book_covers")
 }
 
 model Copy {

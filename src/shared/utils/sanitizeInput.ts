@@ -44,9 +44,28 @@ export const sanitizeInput = (
     return value;
   };
 
-  if (req.body) req.body = sanitizeValue(req.body) as typeof req.body;
-  if (req.query) req.query = sanitizeValue(req.query) as typeof req.query;
-  if (req.params) req.params = sanitizeValue(req.params) as typeof req.params;
+  // Safe mutation-based assignment to prevent Express getter crashes
+  if (req.body) {
+    req.body = sanitizeValue(req.body) as typeof req.body;
+  }
+
+  if (req.query) {
+    const sanitizedQuery = sanitizeValue(req.query) as Record<string, unknown>;
+    for (const key in sanitizedQuery) {
+      if (Object.prototype.hasOwnProperty.call(sanitizedQuery, key)) {
+        req.query[key] = sanitizedQuery[key] as any;
+      }
+    }
+  }
+
+  if (req.params) {
+    const sanitizedParams = sanitizeValue(req.params) as Record<string, string>;
+    for (const key in sanitizedParams) {
+      if (Object.prototype.hasOwnProperty.call(sanitizedParams, key)) {
+        req.params[key] = sanitizedParams[key];
+      }
+    }
+  }
 
   next();
 };
