@@ -1,0 +1,68 @@
+Amun Libraries API Role Access Summary
+
+Applicable module: anum-libraries-api
+Scope: branch module routes and branch-level access in the server.
+
+Roles:
+
+1. BRANCH_ADMIN
+   - Highest branch-level role.
+   - Can manage staff under the same branch:
+     - List branch staff.
+     - Create new staff accounts.
+     - Update staff data.
+     - Delete staff accounts.
+     - Deactivate staff accounts.
+   - Can manage branch bans:
+     - Create branch bans for members.
+     - Revoke branch bans.
+   - Can waive fines.
+   - Can access all branch routes that require a minimum role of BRANCH_ADMIN or lower.
+
+2. SENIOR_LIBRARIAN
+   - Mid-level branch role.
+   - Can access branch routes that require any branch-level authentication.
+   - Can manage core branch resources with librarian-level permissions and above.
+   - Specific access includes:
+     - Create, update, and delete books.
+     - Create and update copies.
+     - Create and update members.
+     - Suspend members.
+     - Create and update fines.
+     - Create reservations and cancel/notify reservations.
+     - Manage loans: checkout, get loan details, check in, renew.
+     - Read lists of books, copies, members, fines, bans, loans, reservations.
+   - Note: SENIOR_LIBRARIAN is allowed wherever requireRole('LIBRARIAN') is used.
+
+3. LIBRARIAN
+   - Primary operational role for branch staff.
+   - Can perform most branch data operations:
+     - Create, update, and delete books.
+     - Create and update copies.
+     - Create and update members.
+     - Suspend members.
+     - Create and update fines.
+     - Create reservations and cancel/notify reservations.
+     - Manage loans: checkout, view loan, check in, renew.
+   - Can access all branch routes protected by `requireRole('LIBRARIAN')`.
+   - Cannot manage staff or revoke branch bans, and cannot waive fines.
+
+4. DESK_STAFF
+   - Entry-level branch role.
+   - Can access branch routes requiring only authenticated branch access.
+   - Can read branch data and perform workflow actions not explicitly protected by a higher minimum role.
+   - Likely allowed to:
+     - View books, copies, members, fines, bans, and loans.
+     - Create reservations and manage them if no explicit higher role is required.
+     - Perform loan checkout, check-in, and renew operations if allowed by controllers (branchAuth only).
+   - Cannot perform any actions protected by `requireRole('LIBRARIAN')` or `requireRole('BRANCH_ADMIN')`.
+
+Branch auth rules:
+- Branch routes under `/api/v1/*` use `branchAuth` middleware.
+- `branchAuth` validates JWT, attaches `req.staff` with `staffId`, `branchId`, and `role`.
+- `branchAuth` rejects any token where `branchId` is null, so SUPER_ADMIN tokens are not permitted on branch routes.
+- Role hierarchy is: DESK_STAFF < LIBRARIAN < SENIOR_LIBRARIAN < BRANCH_ADMIN < SUPER_ADMIN.
+
+Network-level note (excluded):
+- All network routes under `/api/v1/network/*` are protected by `networkAuth` and require `role === SUPER_ADMIN`.
+- This summary intentionally excludes SUPER_ADMIN network access.

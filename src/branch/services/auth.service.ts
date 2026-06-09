@@ -43,6 +43,12 @@ export const login = async (input: LoginInput) => {
       role: true,
       isActive: true,
       mustChangePassword: true,
+      branch: {
+        select: {
+          name: true,
+          town: true,
+        },
+      },
     },
   });
 
@@ -85,13 +91,12 @@ export const login = async (input: LoginInput) => {
     refreshToken: tokens.refreshToken,
     mustChangePassword: staff.mustChangePassword,
     staff: {
-      id: staff.id,
       firstName: staff.firstName,
       lastName: staff.lastName,
       email: staff.email,
       role: staff.role,
-      branchId: staff.branchId,
       mustChangePassword: staff.mustChangePassword,
+      branch: staff.branch,
     },
   };
 };
@@ -127,14 +132,15 @@ export const getMe = async (staffId: string) => {
   const staff = await prisma.staff.findUnique({
     where: { id: staffId },
     select: {
-      id: true,
       firstName: true,
       lastName: true,
       email: true,
       role: true,
-      branchId: true,
       lastLoginAt: true,
       createdAt: true,
+      branch: {
+        select: { name: true, town: true },
+      },
     },
   });
 

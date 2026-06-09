@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { verifyAccessToken } from '../../shared/utils/jwt.js';
+import { AppError } from '../../shared/utils/appError.js';
 
 export const networkAuth = (
   req: Request,
@@ -10,19 +11,19 @@ export const networkAuth = (
     const token = req.cookies?.accessToken;
 
     if (!token) {
-      return res.status(401).json({
-        error: 'Authentication required',
-        code: 'UNAUTHORIZED',
-      });
+      return next(new AppError(401, 'UNAUTHORIZED', 'Authentication required'));
     }
 
     const payload = verifyAccessToken(token);
 
     if (payload.role !== 'SUPER_ADMIN') {
-      return res.status(403).json({
-        error: 'SUPER_ADMIN access required',
-        code: 'BRANCH_TOKEN_NETWORK_ACCESS',
-      });
+      return next(
+        new AppError(
+          403,
+          'BRANCH_TOKEN_NETWORK_ACCESS',
+          'SUPER_ADMIN access required',
+        ),
+      );
     }
 
     req.staff = {
@@ -33,9 +34,6 @@ export const networkAuth = (
 
     next();
   } catch {
-    return res.status(401).json({
-      error: 'Invalid or expired token',
-      code: 'INVALID_TOKEN',
-    });
+    return next(new AppError(401, 'INVALID_TOKEN', 'Invalid or expired token'));
   }
 };

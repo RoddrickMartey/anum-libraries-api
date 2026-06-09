@@ -3,14 +3,12 @@
 import { NextFunction, Request, Response } from 'express';
 import type { Role } from '../../generated/prisma/client.js';
 import { ROLE_HIERARCHY } from '../../config/constants.js';
+import { AppError } from '../../shared/utils/appError.js';
 
 export const requireRole = (minimumRole: Role) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.staff) {
-      return res.status(401).json({
-        error: 'Authentication required',
-        code: 'UNAUTHORIZED',
-      });
+      return next(new AppError(401, 'UNAUTHORIZED', 'Authentication required'));
     }
 
     const currentRole = req.staff.role as Role;
@@ -19,10 +17,9 @@ export const requireRole = (minimumRole: Role) => {
     const requiredLevel = ROLE_HIERARCHY[minimumRole];
 
     if (currentLevel < requiredLevel) {
-      return res.status(403).json({
-        error: 'Insufficient permissions',
-        code: 'INSUFFICIENT_ROLE',
-      });
+      return next(
+        new AppError(403, 'INSUFFICIENT_ROLE', 'Insufficient permissions'),
+      );
     }
 
     next();

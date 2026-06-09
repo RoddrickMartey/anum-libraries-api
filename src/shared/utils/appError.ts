@@ -2,14 +2,14 @@
 export class AppError extends Error {
   public readonly statusCode: number;
   public readonly code: string;
-  public readonly meta: { [key: string]: string } | null;
+  public readonly meta: { [key: string]: string | boolean } | null;
   public readonly isOperational: boolean;
 
   constructor(
     statusCode: number,
     code: string,
     message: string,
-    meta: { [key: string]: string } | null = null,
+    meta: { [key: string]: string | boolean } | null = null,
   ) {
     super(message);
 

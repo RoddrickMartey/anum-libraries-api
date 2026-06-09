@@ -78,7 +78,12 @@ export const refresh = async (
     const token = req.cookies[TOKEN_COOKIE_NAME];
 
     if (!token) {
-      throw new AppError(401, 'REFRESH_TOKEN_MISSING', 'Refresh token missing');
+      throw new AppError(
+        401,
+        'REFRESH_TOKEN_MISSING',
+        'Refresh token missing',
+        { logout: true },
+      );
     }
 
     const data = authService.refresh(token);
@@ -96,6 +101,7 @@ export const refresh = async (
         401,
         'INVALID_REFRESH_TOKEN',
         'Invalid or expired refresh token',
+        { logout: true },
       ),
     );
   }
